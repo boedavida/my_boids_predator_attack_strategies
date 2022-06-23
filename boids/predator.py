@@ -40,9 +40,24 @@ class Predator(pg.sprite.Sprite):
         # Store the old position
         self.prev_pos = self.pos
 
-        # Aim at the mouse
-        mouse_pos = pg.Vector2(pg.mouse.get_pos())
-        new_pos, self.vel = move_to(self.pos, mouse_pos, desired_speed=5)
+        predator_attack_model = "mouse"
+        match predator_attack_model:
+            case "attack_center":
+                # Aim at the center of the flock
+                flock_center = get_flock_center(boids)
+                new_pos, self.vel = move_to(self.pos, flock_center, desired_speed=5)
+            case "attack_nearest":
+                # Aim at the nearest boid
+                nearest_boid = self.get_nearest_boid(boids)
+                new_pos, self.vel = move_to(self.pos, nearest_boid, desired_speed=5)
+            #case "attack_isolated":
+            #    # Aim at the most isolated boid
+            #    most_isolated_boid = pg.Vector2()
+            #    new_pos, self.vel = move_to(self.pos, most_isolated_boid, desired_speed=5)
+            case default: # "mouse"
+                # Aim at the mouse
+                mouse_pos = pg.Vector2(pg.mouse.get_pos())
+                new_pos, self.vel = move_to(self.pos, mouse_pos, desired_speed=5)
 
         if new_pos is not None:
             self.pos = new_pos
@@ -54,6 +69,27 @@ class Predator(pg.sprite.Sprite):
             # Move the image to the correct position
             self.rect = self.image.get_rect(center=self.pos)
 
+    def get_nearest_boid(self, boids):
+        nearest_distance = 1_000_000_000
+        for boid in boids:
+            # Calculate the distance between in predator and the boids
+            distance = boid.pos.distance_to(self.pos)
+            if distance <= nearest_distance:
+                nearest_boid = boid.pos
+        return nearest_boid
+        
+def get_flock_center(boids):
+    sum_positions = pg.Vector2(0, 0)
+    num_boids = 0
+    for boid in boids:
+        sum_positions += boid.pos
+        num_boids += 1
+
+    # There should at least 2 boids, yourself and another boid
+    if num_boids >= 2:
+        # Calculate the center of mass
+        center_of_mass = sum_positions / num_boids
+    return center_of_mass
 
 def move_to(
     curr_pos: pg.Vector2,
@@ -90,3 +126,4 @@ def move_to(
         new_pos = curr_pos + velocity
 
     return new_pos, velocity  # type: ignore
+
